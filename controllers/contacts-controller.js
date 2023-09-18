@@ -3,7 +3,9 @@ import { HttpError } from "../helpers/index.js";
 import { ctrlWrapper } from "../decorators/index.js";
 
 const getAll = async (req, res) => {
-  const result = await Contact.find({}, "-createdAt -updatedAt");
+  const { _id: owner } = req.user;
+  // const result = await Contact.find({}, "-createdAt -updatedAt");
+  const result = await Contact.find({ owner }, "-createdAt -updatedAt");
   console.log("result:", result);
   res.json(result);
 };
@@ -20,7 +22,8 @@ const getById = async (req, res) => {
 };
 
 const add = async (req, res) => {
-  const result = await Contact.create(req.body);
+  const { _id: owner } = req.user;
+  const result = await Contact.create({ ...req.body, owner });
   res.status(201).json(result);
 };
 

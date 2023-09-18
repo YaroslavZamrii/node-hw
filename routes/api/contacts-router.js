@@ -1,7 +1,7 @@
 import express from "express";
 import Joi from "joi";
 import { validateBody } from "../../decorators/index.js";
-import { isValidId } from "../../middlewares/index.js";
+import { isValidId, authenticate } from "../../middlewares/index.js";
 import * as contactSchemas from "../../models/Contact.js";
 import contactsController from "../../controllers/contacts-controller.js";
 
@@ -11,6 +11,8 @@ const contactUpdateFavoriteValidate = validateBody(
 );
 
 const contactsRouter = express.Router();
+
+contactsRouter.use(authenticate);
 
 contactsRouter.get("/", contactsController.getAll);
 
