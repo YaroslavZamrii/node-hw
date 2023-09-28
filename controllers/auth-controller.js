@@ -1,5 +1,9 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import gravatar from "gravatar";
+import fs from "fs/promises";
+import path from "path";
+import jimp from "jimp";
 
 import User from "../models/User.js";
 
@@ -9,6 +13,8 @@ import { ctrlWrapper } from "../decorators/index.js";
 
 const { JWT_SECRET } = process.env;
 
+const postersPath = path.resolve("public", "avatars");
+
 const signup = async (req, res) => {
   const { email, password } = req.body;
   const user = await User.findOne({ email });
@@ -17,8 +23,16 @@ const signup = async (req, res) => {
   }
 
   const hashPassword = await bcrypt.hash(password, 10);
+  const httpUrlAvatar = gravatar.url(email, {
+    protocol: "http",
+    s: "250",
+  });
 
-  const newUser = await User.create({ ...req.body, password: hashPassword });
+  const newUser = await User.create({
+    ...req.body,
+    password: hashPassword,
+    avatarURL: httpUrlAvatar,
+  });
 
   res.status(201).json({
     email: newUser.email,
@@ -74,9 +88,30 @@ const signout = async (req, res) => {
   });
 };
 
+const updateAvatar = async (req, res) => {
+  const { _id: user } = req.user;
+  const { path: oldPath, filename } = req.file;
+  const newPath = path.join(postersPath, filename);
+
+  await fs.rename(oldPath, newPath);
+
+  const image = await jimp.read(newPath);
+  await image.resize(250, jimp.AUTO).writeAsync(newPath);
+
+  const avatarPath = path.join("avatars", filename);
+  const updatedUser = await User.findByIdAndUpdate(
+    user,
+    { avatarURL: avatarPath },
+    { new: true, runValidators: true }
+  );
+
+  res.status(200).json({ avatarURL: updatedUser.avatarURL });
+};
+
 export default {
   signup: ctrlWrapper(signup),
   signin: ctrlWrapper(signin),
   getCurrent: ctrlWrapper(getCurrent),
   signout: ctrlWrapper(signout),
+  updateAvatar: ctrlWrapper(updateAvatar),
 };
